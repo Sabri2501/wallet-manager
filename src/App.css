@@ -1,0 +1,211 @@
+/* General App Styles */
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #e6f7ff; /* Light blue background for a soft look */
+  color: #333;
+}
+
+/* Container */
+div {
+  background-color: #ffffff;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  margin: 30px auto;
+  max-width: 1000px;
+  overflow: hidden;
+}
+
+/* Header */
+h1 {
+  text-align: center;
+  color: #007bb5; /* Darker blue for main headings */
+  margin-bottom: 25px;
+  font-size: 2.5rem;
+}
+
+/* Section Headings */
+h2 {
+  color: #007bb5;
+  border-bottom: 2px solid #007bb5;
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+}
+
+/* Form Container */
+div > div {
+  margin-bottom: 25px;
+}
+
+/* Input Fields */
+input[type="month"],
+input[type="number"],
+select {
+  width: 100%;
+  padding: 12px;
+  margin: 5px 0;
+  border: 2px solid #007bb5;
+  border-radius: 6px;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+input[type="month"]:focus,
+input[type="number"]:focus,
+select:focus {
+  border-color: #005f7a; /* Darker blue for focus */
+  box-shadow: 0 0 8px rgba(0, 95, 122, 0.3);
+}
+
+/* Button */
+button {
+  background-color: #007bb5;
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s, transform 0.3s;
+  box-shadow: 0 3px 6px rgba(0, 123, 181, 0.2);
+}
+
+button:hover {
+  background-color: #005f7a;
+  transform: translateY(-2px);
+}
+
+button:active {
+  background-color: #004060; /* Darker blue for active */
+  box-shadow: 0 2px 4px rgba(0, 123, 181, 0.4);
+}
+
+button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Budget List */
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  padding: 15px 0;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 16px;
+  transition: background-color 0.3s;
+}
+
+li:last-child {
+  border-bottom: none;
+}
+
+li:hover {
+  background-color: #f2f9ff; /* Light hover effect */
+}
+
+span {
+  margin-left: 10px;
+  font-weight: bold;
+}
+
+.alert {
+  color: #d9534f; /* Red for alert */
+}
+
+.warning {
+  color: #f0ad4e; /* Orange for warnings */
+}
+
+/* Transaction List */
+ul.transaction-list {
+  list-style: none;
+  padding: 0;
+}
+
+ul.transaction-list li {
+  border-bottom: 1px solid #ddd;
+  padding: 10px 0;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  color: #007bb5;
+}
+
+/* Chart Container */
+.chart-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+  height: 350px; /* Set a specific height for the chart */
+  overflow: hidden; /* Prevent overflow if content is too large */
+}
+
+/* Chart Styling */
+.chart {
+  border-radius: 12px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #e6f7ff, #f0faff);
+  padding: 10px;
+  box-shadow: 0 4px 10px rgba(0, 123, 181, 0.1);
+}
+
+/* Chart Legend */
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+/* Chart Legend Item */
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  margin: 5px 10px;
+  font-size: 14px;
+  color: #333;
+}
+
+.chart-legend-color {
+  width: 16px; /* Adjusted for a more compact look */
+  height: 16px; /* Adjusted for a more compact look */
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+/* Reduce Chart Padding */
+.chart-title {
+  font-size: 1.2rem; /* Adjust title size for a shorter chart */
+  color: #007bb5;
+  margin-bottom: 15px;
+}
+
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  input[type="month"],
+  input[type="number"],
+  select,
+  button {
+    width: 100%;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+  }
+}
