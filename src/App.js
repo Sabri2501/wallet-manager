@@ -3,269 +3,278 @@ import Chart from 'react-apexcharts';
 import './App.css';
 
 function App() {
+  // State management
   const [budgets, setBudgets] = useState({});
   const [transactions, setTransactions] = useState([]);
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [monthYear, setMonthYear] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('');
+  const [showCustomCategory, setShowCustomCategory] = useState(false);
+  const [customCategory, setCustomCategory] = useState('');
+  const [categories, setCategories] = useState(['Food', 'Transport', 'Leisure', 'Bills', 'Others']);
 
-  const categories = ['Food', 'Transport', 'Leisure', 'Bills', 'Others'];
+  // Load data from localStorage
+  useEffect(() => {
+    const savedBudgets = localStorage.getItem('budgets');
+    const savedTransactions = localStorage.getItem('transactions');
+    if (savedBudgets) setBudgets(JSON.parse(savedBudgets));
+    if (savedTransactions) setTransactions(JSON.parse(savedTransactions));
+  }, []);
 
+  // Save data to localStorage
+  useEffect(() => {
+    localStorage.setItem('budgets', JSON.stringify(budgets));
+    localStorage.setItem('transactions', JSON.stringify(transactions));
+  }, [budgets, transactions]);
+
+  // Add new budget month
   const handleAddBudget = () => {
     if (monthYear && !budgets[monthYear]) {
-      setBudgets((prevBudgets) => ({
-        ...prevBudgets,
-        [monthYear]: {
-          budget: 0,
-          totalSpent: 0,
-        },
+      setBudgets(prev => ({
+        ...prev,
+        [monthYear]: { budget: 0, totalSpent: 0 }
       }));
     }
   };
 
+  // Edit budget with validation
   const handleSetBudget = (month) => {
-    const budgetAmount = prompt(`Set budget for ${month}:`, 0);
-    if (budgetAmount !== null && !isNaN(budgetAmount)) {
-      setBudgets((prevBudgets) => ({
-        ...prevBudgets,
-        [month]: {
-          ...prevBudgets[month],
-          budget: parseFloat(budgetAmount),
-        },
-      }));
+    const currentBudget = budgets[month]?.budget || 0;
+    const totalSpent = budgets[month]?.totalSpent || 0;
+    
+    const budgetAmount = prompt(
+      `Set budget for ${month}\nCurrent: $${currentBudget}\nSpent: $${totalSpent}`,
+      currentBudget
+    );
+    
+    if (budgetAmount === null) return;
+    if (isNaN(budgetAmount)) return alert("Please enter a valid number");
+    
+    const newBudget = parseFloat(budgetAmount);
+    if (newBudget < totalSpent) {
+      return alert(`Budget ($${newBudget}) cannot be less than spent ($${totalSpent})`);
+    }
+    
+    setBudgets(prev => ({
+      ...prev,
+      [month]: { ...prev[month], budget: newBudget }
+    }));
+  };
+
+  // Handle amount input (numbers only)
+  const handleAmountChange = (e) => {
+    const value = e.target.value;
+    if (/^\d*\.?\d*$/.test(value)) setAmount(value);
+  };
+
+  // Handle category selection
+  const handleCategoryChange = (e) => {
+    const value = e.target.value;
+    setCategory(value);
+    setShowCustomCategory(value === 'Others');
+  };
+
+  // Add custom category
+  const handleAddCustomCategory = () => {
+    if (customCategory.trim() && !categories.includes(customCategory)) {
+      setCategories([...categories.slice(0, -1), customCategory, 'Others']);
+      setCategory(customCategory);
+      setShowCustomCategory(false);
+      setCustomCategory('');
     }
   };
 
+  // Add new transaction
   const addTransaction = () => {
-    if (!selectedMonth || amount <= 0 || !category) {
-      alert('Please fill out all fields.');
-      return;
+    if (!selectedMonth || !amount || !category) {
+      return alert('Please fill all fields');
     }
+
+    const amountNum = parseFloat(amount);
+    if (amountNum <= 0) return alert('Amount must be positive');
 
     const currentBudget = budgets[selectedMonth];
-    if (currentBudget) {
-      const remainingBudget = currentBudget.budget - currentBudget.totalSpent;
+    if (!currentBudget) return;
 
-      if (remainingBudget < amount) {
-        alert('You do not have enough budget to add this transaction.');
-        return;
-      }
-
-      const newTransaction = {
-        monthYear: selectedMonth,
-        date: new Date().toLocaleDateString(),
-        amount: parseFloat(amount),
-        category: category,
-      };
-
-      setTransactions((prevTransactions) => [...prevTransactions, newTransaction]);
-      currentBudget.totalSpent += parseFloat(amount);
-      setBudgets({ ...budgets, [selectedMonth]: currentBudget });
-
-      setAmount('');
-      setCategory('');
+    if (currentBudget.totalSpent + amountNum > currentBudget.budget) {
+      return alert('This would exceed your budget');
     }
+
+    const newTransaction = {
+      id: Date.now(),
+      monthYear: selectedMonth,
+      date: new Date().toLocaleDateString(),
+      amount: amountNum,
+      category
+    };
+
+    setTransactions(prev => [...prev, newTransaction]);
+    setBudgets(prev => ({
+      ...prev,
+      [selectedMonth]: {
+        ...prev[selectedMonth],
+        totalSpent: prev[selectedMonth].totalSpent + amountNum
+      }
+    }));
+
+    setAmount('');
+    setCategory('');
   };
 
-  useEffect(() => {
-    if (selectedMonth) {
-      const total = transactions
-        .filter((transaction) => transaction.monthYear === selectedMonth)
-        .reduce((sum, transaction) => sum + transaction.amount, 0);
+  // Calculate remaining budget
+  const getRemainingBudget = (month) => {
+    if (!budgets[month]) return 0;
+    return (budgets[month].budget - budgets[month].totalSpent).toFixed(2);
+  };
 
-      setBudgets((prevBudgets) => ({
-        ...prevBudgets,
-        [selectedMonth]: {
-          ...prevBudgets[selectedMonth],
-          totalSpent: total,
-        },
-      }));
-    }
-  }, [transactions, selectedMonth]);
-
+  // Generate chart data
   const getChartData = () => {
-    if (!selectedMonth) return { options: {}, series: [] };
-
-    const monthlyTransactions = transactions.filter(
-      (transaction) => transaction.monthYear === selectedMonth
-    );
+    if (!selectedMonth || !budgets[selectedMonth]) {
+      return { options: {}, series: [] };
+    }
 
     const categoryTotals = {};
-    monthlyTransactions.forEach((transaction) => {
-      if (!categoryTotals[transaction.category]) {
-        categoryTotals[transaction.category] = 0;
-      }
-      categoryTotals[transaction.category] += transaction.amount;
-    });
-
-    const categories = Object.keys(categoryTotals);
-    const data = categories.map((category) => categoryTotals[category]);
+    transactions
+      .filter(t => t.monthYear === selectedMonth)
+      .forEach(t => {
+        categoryTotals[t.category] = (categoryTotals[t.category] || 0) + t.amount;
+      });
 
     return {
       options: {
-        chart: {
-          type: 'pie',
-          width: '100%',
-        },
-        labels: categories,
-        theme: {
-          monochrome: {
-            enabled: true,
-            color: '#008FFB',
-          },
-        },
-        plotOptions: {
-          pie: {
-            donut: {
-              size: '60%',
-            },
-          },
-        },
-        title: {
-          text: 'Spending Breakdown',
-          align: 'center',
-        },
+        chart: { type: 'donut' },
+        labels: Object.keys(categoryTotals),
+        colors: ['#4CAF50', '#2196F3', '#FFC107', '#FF5722', '#9C27B0']
       },
-      series: data,
+      series: Object.values(categoryTotals)
     };
   };
 
-  const chartData = getChartData();
-
-  // Calculate the remaining budget for the selected month
-  const getRemainingBudget = (month) => {
-    if (budgets[month]) {
-      return (budgets[month].budget - budgets[month].totalSpent).toFixed(2);
-    }
-    return null;
-  };
-
   return (
-    <div style={{ padding: '20px', fontFamily: 'Arial', maxWidth: '800px', margin: '0 auto' }}>
-      <h1 style={{ textAlign: 'center' }}>Wallet Manager</h1>
+    <div className="app-container">
+      <header>
+        <h1>💰 Wallet Manager</h1>
+      </header>
 
-      <div style={{ marginBottom: '20px' }}>
-        <h2>Set Budget for a Month</h2>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-          <input
-            type="month"
-            value={monthYear}
-            onChange={(e) => setMonthYear(e.target.value)}
-            style={{ marginRight: '10px', flex: 1 }}
-          />
-          <button onClick={handleAddBudget}>Add Budget</button>
-        </div>
-        <p>Budgets:</p>
-        <ul>
-          {Object.keys(budgets).map((month) => (
-            <li key={month} style={{ display: 'flex', alignItems: 'center' }}>
-              {month} - Budget: ${budgets[month].budget.toFixed(2)} | Spent: ${budgets[month].totalSpent.toFixed(2)}
-              <span style={{ marginLeft: '10px' }}>
-                Remaining: ${getRemainingBudget(month) !== null ? getRemainingBudget(month) : 'N/A'}
-              </span>
-              {budgets[month].totalSpent > budgets[month].budget && (
-                <span style={{ color: 'red', marginLeft: '10px' }}>ALERT: Budget exceeded!</span>
-              )}
-              {budgets[month].totalSpent === budgets[month].budget && (
-                <span style={{ color: 'orange', marginLeft: '10px' }}>You have spent all of your budget!</span>
-              )}
-              <button onClick={() => handleSetBudget(month)} style={{ marginLeft: '10px' }}>
-                Set Budget
-              </button>
-            </li>
+      <main>
+        {/* Budget Section */}
+        <section className="card">
+          <h2>Monthly Budgets</h2>
+          <div className="budget-controls">
+            <input
+              type="month"
+              value={monthYear}
+              onChange={(e) => setMonthYear(e.target.value)}
+            />
+            <button onClick={handleAddBudget}>Add Month</button>
+          </div>
+
+          {Object.keys(budgets).map(month => (
+            <div key={month} className="budget-item">
+              <h3>{month}</h3>
+              <div>
+                <span>Budget: ${budgets[month].budget.toFixed(2)}</span>
+                <span>Spent: ${budgets[month].totalSpent.toFixed(2)}</span>
+                <span className={
+                  getRemainingBudget(month) < 0 ? 'negative' : 
+                  getRemainingBudget(month) == 0 ? 'zero' : 'positive'
+                }>
+                  Remaining: ${getRemainingBudget(month)}
+                </span>
+              </div>
+              <button onClick={() => handleSetBudget(month)}>Edit</button>
+            </div>
           ))}
-        </ul>
-      </div>
+        </section>
 
-      <div style={{ marginBottom: '20px' }}>
-        <h2>Add Transaction</h2>
-        <div style={{ marginBottom: '10px' }}>
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            style={{ marginRight: '10px' }}
-          >
-            <option value="">Select Month</option>
-            {Object.keys(budgets).map((month) => (
-              <option key={month} value={month}>
-                {month}
-              </option>
-            ))}
-          </select>
-          <input
-            type="number"
-            placeholder="Amount"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            style={{ marginRight: '10px' }}
-          />
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            style={{ marginRight: '10px' }}
-          >
-            <option value="">Select Category</option>
-            {categories.map((cat, index) => (
-              <option key={index} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={addTransaction}
-            className="button"
-            disabled={
-              !selectedMonth ||
-              amount <= 0 ||
-              !category ||
-              (budgets[selectedMonth] && budgets[selectedMonth].totalSpent >= budgets[selectedMonth].budget)
-            }
-          >
-            Add
-          </button>
-        </div>
-      </div>
+        {/* Transaction Form */}
+        <section className="card">
+          <h2>Add Transaction</h2>
+          <form onSubmit={(e) => { e.preventDefault(); addTransaction(); }}>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              required
+            >
+              <option value="">Select Month</option>
+              {Object.keys(budgets).map(month => (
+                <option key={month} value={month}>{month}</option>
+              ))}
+            </select>
 
-      <div>
-        <h2>Transactions for {selectedMonth}</h2>
-        {transactions.filter((transaction) => transaction.monthYear === selectedMonth).length === 0 ? (
-          <p>No transactions for this month yet.</p>
-        ) : (
-          <ul>
-            {transactions.filter((transaction) => transaction.monthYear === selectedMonth).map((transaction, index) => (
-              <li key={index}>
-                {transaction.date} - {transaction.category}: ${transaction.amount.toFixed(2)}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+            <input
+              type="text"
+              value={amount}
+              onChange={handleAmountChange}
+              placeholder="Amount"
+              inputMode="decimal"
+              required
+            />
 
-      <div style={{ marginTop: '20px' }}>
-        <h2>Budget Summary for {selectedMonth}</h2>
+            <select
+              value={category}
+              onChange={handleCategoryChange}
+              required
+            >
+              <option value="">Select Category</option>
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+
+            {showCustomCategory && (
+              <div className="custom-category">
+                <input
+                  type="text"
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  placeholder="New category name"
+                />
+                <button 
+                  type="button" 
+                  onClick={handleAddCustomCategory}
+                >
+                  Add Category
+                </button>
+              </div>
+            )}
+
+            <button type="submit">Add Transaction</button>
+          </form>
+        </section>
+
+        {/* Transactions List */}
         {selectedMonth && (
-          <p>
-            Budget: ${budgets[selectedMonth].budget.toFixed(2)} | Spent: ${budgets[selectedMonth].totalSpent.toFixed(2)}
-            | Remaining: ${getRemainingBudget(selectedMonth)}
-            {budgets[selectedMonth].totalSpent > budgets[selectedMonth].budget && (
-              <span style={{ color: 'red', marginLeft: '10px' }}>ALERT: Budget exceeded!</span>
-            )}
-            {budgets[selectedMonth].totalSpent === budgets[selectedMonth].budget && (
-              <span style={{ color: 'orange', marginLeft: '10px' }}>You have spent all of your budget!</span>
-            )}
-          </p>
+          <section className="card">
+            <h2>Transactions for {selectedMonth}</h2>
+            <div className="transactions">
+              {transactions
+                .filter(t => t.monthYear === selectedMonth)
+                .map(t => (
+                  <div key={t.id} className="transaction">
+                    <span>{t.date}</span>
+                    <span>{t.category}</span>
+                    <span>${t.amount.toFixed(2)}</span>
+                  </div>
+                ))}
+            </div>
+          </section>
         )}
-      </div>
 
-      <div style={{ marginTop: '40px' }}>
-        <h2>Spending Chart</h2>
-        {selectedMonth && chartData.series.length > 0 ? (
-          <Chart options={chartData.options} series={chartData.series} type="pie" width="100%" />
-        ) : (
-          <p>No data available for the selected month.</p>
+        {/* Spending Chart */}
+        {selectedMonth && (
+          <section className="card">
+            <h2>Spending Breakdown</h2>
+            <Chart 
+              options={getChartData().options} 
+              series={getChartData().series} 
+              type="donut" 
+              width="100%"
+            />
+          </section>
         )}
-      </div>
+      </main>
     </div>
   );
 }
