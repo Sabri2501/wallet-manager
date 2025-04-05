@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/wallet-manager/static/css/main.5e6e107e.css",
+    "main.js": "/wallet-manager/static/js/main.c20b11d2.js",
+    "index.html": "/wallet-manager/index.html",
+    "main.5e6e107e.css.map": "/wallet-manager/static/css/main.5e6e107e.css.map",
+    "main.c20b11d2.js.map": "/wallet-manager/static/js/main.c20b11d2.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.5e6e107e.css",
+    "static/js/main.c20b11d2.js"
+  ]
+}
